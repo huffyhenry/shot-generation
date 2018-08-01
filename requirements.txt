@@ -1,0 +1,6 @@
+adjustText
+ipython
+matplotlib
+pandas
+pystan
+scipy
