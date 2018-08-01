@@ -3,7 +3,10 @@ SELECT
   t1.name AS team1,
   t2.name AS team2,
   round(e.min + e.sec/60.0, 2) AS time,
-  round(e.min + e.sec/60.0 - lag(e.min + e.sec/60.0, 1, 0.0) OVER half, 2) AS wait,
+  coalesce(
+    round(e.min + e.sec/60.0 - lag(e.min + e.sec/60.0) OVER half, 2),
+    round(e.min + e.sec/60.0 - (e.period_id - 1) * 45, 2)
+  ) AS wait,
   t.name AS team,
   CASE WHEN t.id = t1.id THEN t2.name ELSE t1.name END AS oppo,
   (e.team_id = g.team1_id)::INT AS home,
