@@ -17,14 +17,25 @@ data{
 
 parameters{
     // Team-specific coefficients of shot generation and prevention
+    // Having 2*n_teams - 1 free params ensures identifiability, see below.
     real<lower=0.0> generation[n_teams];
-    real<lower=0.0> prevention[n_teams];
+    real<lower=0.0> prevention_raw[n_teams-1];
 
     // Game-state modifiers of shooting rate, relative to that at drawn state
     real<lower=0.0> winning;
     real<lower=0.0> losing;
 
     real<lower=0.0> hfa;
+}
+
+transformed parameters{
+    real<lower=0.0> prevention[n_teams];
+
+    // Introduce multiply-to-one constraint.
+    for (i in 1:(n_teams-1)){
+        prevention[i] = prevention_raw[i];
+    }
+    prevention[n_teams] = exp(-sum(log(prevention_raw)));
 }
 
 model{
@@ -34,7 +45,7 @@ model{
 
     // Priors
     generation ~ normal(0, 1);
-    prevention ~ normal(0, 1);
+    prevention_raw ~ normal(0, 1);  // _raw b/c the constraint is non-linear
     winning ~ normal(1, 1);
     losing ~ normal(1, 1);
     hfa ~ normal(1, 1);
