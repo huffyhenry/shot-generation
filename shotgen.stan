@@ -21,12 +21,9 @@ parameters{
     real<lower=0.0> prevention[n_teams];
 
     // Game-state modifiers of shooting rate, relative to that at drawn state
-    // TODO: Make this team-specific as a random effect?
-    // TODO: Have separate modifiers for common scores?
     real<lower=0.0> winning;
     real<lower=0.0> losing;
 
-    // TODO: Estimate separate HFAs for generation and prevention?
     real<lower=0.0> hfa;
 }
 
@@ -36,7 +33,6 @@ model{
     real production_oppo;
 
     // Priors
-    // TODO: Smarter team-specific priors using the transformed shots:time ratio
     generation ~ normal(0, 1);
     prevention ~ normal(0, 1);
     winning ~ normal(1, 1);
@@ -46,7 +42,6 @@ model{
     // Likelihood
     for (i in 1:n_shots){
         // Compute the rates of shot production
-        // TODO: Explore moving to the log domain
         production_team = generation[team[i]] * prevention[oppo[i]];
         production_oppo = generation[oppo[i]] * prevention[team[i]];
         if (home[i]){
