@@ -14,13 +14,12 @@ samples, team_map = run()
 graph(samples, team_map)
 ```
 which produces a scatter plot of team coefficients with 50% CIs:
-
 ![Team coefficients](doc/figures/team_scatter.png)
 
 Note that while the CIs are very wide, this is due
 to the fact that that the mean time to shot is the inverse of the shooting rate
-and thus the effect of extreme values is magnified. The underlying team 
-coefficients are in fact significantly different from each other, as illustrated
+and thus the effect of extremely small values is magnified. The underlying team 
+coefficients are in fact significantly different from one another, as illustrated
 by further running
 
 ```python
@@ -28,7 +27,6 @@ samples.plot()
 plt.show()
 ```
 which yields
-
 ![Samples](doc/figures/fit.png)
 
 ### Status

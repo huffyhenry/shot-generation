@@ -16,71 +16,70 @@ data{
 }
 
 parameters{
-    // Team-specific coefficients of shot generation and prevention
-    // Having 2*n_teams - 1 free params ensures identifiability, see below.
-    real<lower=0.0> generation[n_teams];
-    real<lower=0.0> prevention_raw[n_teams-1];
+    // Team-specific coefficients of shot generation/prevention in log space.
+    // Having 2*n_teams - 1 free parameters ensures identifiability.
+    real generation[n_teams];
+    real prevention_raw[n_teams-1];
 
     // Game-state modifiers of shooting rate, relative to that at drawn state
-    real<lower=0.0> winning;
-    real<lower=0.0> losing;
+    real winning;
+    real losing;
 
-    real<lower=0.0> hfa;
+    real hfa;
 }
 
 transformed parameters{
-    real<lower=0.0> prevention[n_teams];
+    real prevention[n_teams];
 
-    // Introduce multiply-to-one constraint.
+    // Introduce sum-to-zero constraint.
     for (i in 1:(n_teams-1)){
         prevention[i] = prevention_raw[i];
     }
-    prevention[n_teams] = exp(-sum(log(prevention_raw)));
+    prevention[n_teams] = -sum(prevention_raw);
 }
 
 model{
-    // Rates of shot production for the two teams
+    // Rates of shot production for the two teams, in log space
     real production_team;
     real production_oppo;
 
     // Priors
     generation ~ normal(0, 1);
-    prevention_raw ~ normal(0, 1);  // _raw b/c the constraint is non-linear
-    winning ~ normal(1, 1);
-    losing ~ normal(1, 1);
-    hfa ~ normal(1, 1);
+    prevention ~ normal(0, 1);
+    winning ~ normal(0, 1);
+    losing ~ normal(0, 1);
+    hfa ~ normal(0, 1);
 
     // Likelihood
     for (i in 1:n_shots){
-        // Compute the rates of shot production
-        production_team = generation[team[i]] * prevention[oppo[i]];
-        production_oppo = generation[oppo[i]] * prevention[team[i]];
+        production_team = generation[team[i]] + prevention[oppo[i]];
+        production_oppo = generation[oppo[i]] + prevention[team[i]];
         if (home[i]){
-            production_team *= hfa;
+            production_team += hfa;
         }
         else if (!neutral[i]){
-            production_oppo *= hfa;
+            production_oppo += hfa;
         }
         if (state[i] > 0){
-          production_team *= winning;
-          production_oppo *= losing;
+          production_team += winning;
+          production_oppo += losing;
         }
         else if (state[i] < 0){
-          production_team *= losing;
-          production_oppo *= winning;
+          production_team += losing;
+          production_oppo += winning;
         }
 
         // Add the current datapoint to the likelihood
         if (wait[i] > 0.0){  // 0.0 suggests a rebound, unmodelled for now
             if (own_goal[i] || penalty[i] || !shot[i]){
                 // No shot taken for a period of time
-                target += exponential_lccdf(wait[i] | production_team);
-                target += exponential_lccdf(wait[i] | production_oppo);
+                target += exponential_lccdf(wait[i] | exp(production_team));
+                target += exponential_lccdf(wait[i] | exp(production_oppo));
             }
             else {
                 // One team takes a shot, meaning that the other does not
-                target += exponential_lpdf(wait[i] | production_team);
-                target += exponential_lccdf(wait[i] | production_oppo);
+                target += exponential_lpdf(wait[i] | exp(production_team));
+                target += exponential_lccdf(wait[i] | exp(production_oppo));
             }
         }
     }
