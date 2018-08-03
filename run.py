@@ -33,9 +33,9 @@ def graph(samples, team_map):
 
     labels = list(team_map.keys())  # Magically in the correct order
 
-    # Extract samples and convert them to the time to shot interpretation
-    generation = 1.0 / (np.mean(samples['prevention']) * samples['generation'])
-    prevention = 1.0 / (np.mean(samples['generation']) * samples['prevention'])
+    # Extract the samples, move out of log space, convert to mean time to shot
+    generation = 1.0 / np.exp((np.mean(samples['prevention']) + samples['generation']))
+    prevention = 1.0 / np.exp((np.mean(samples['generation']) + samples['prevention']))
 
     gen_means = np.apply_along_axis(np.mean, 0, generation)
     pre_means = np.apply_along_axis(np.mean, 0, prevention)
