@@ -2,6 +2,7 @@ SELECT
   g.kickoff::DATE AS date,
   t1.name AS team1,
   t2.name AS team2,
+  e.period_id AS half,
   round(e.min + e.sec/60.0, 2) AS time,
   coalesce(
     round(e.min + e.sec/60.0 - lag(e.min + e.sec/60.0) OVER half, 2),
