@@ -4,6 +4,7 @@ import pickle
 from adjustText import adjust_text
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.special as ss
 import pandas as pd
 import pystan
 
@@ -27,31 +28,43 @@ def fit(model_file, data, force_compile=False, **kwargs):
     return model.sampling(data, **kwargs)
 
 
-def graph(samples, team_map):
+def graph(samples, team_map, attack=True):
     """ Quick visualisation of the team coefficient samples. """
     plt.style.use('Solarize_Light2')
 
+    # Extract the samples
+    generation = samples['generation']
+    prevention = samples['prevention']
+    conversion = samples['conversion']
+    obstruction = samples['obstruction']
+
     labels = list(team_map.keys())  # Magically in the correct order
 
-    # Extract the samples, move out of log space, convert to mean time to shot
-    generation = 1.0 / np.exp((np.mean(samples['prevention']) + samples['generation']))
-    prevention = 1.0 / np.exp((np.mean(samples['generation']) + samples['prevention']))
+    # Select quantities to plot and make them interpretable
+    if attack:
+        xsamples = 1.0 / np.exp(generation + np.mean(prevention))
+        ysamples = ss.expit(conversion + np.mean(obstruction))
+        xlabel = "Mean time to shot when drawing vs avg opposition"
+        ylabel = "Expected conversion of a shot taken when drawing vs avg opposition"
+    else:
+        xsamples = 1.0 / np.exp(prevention + np.mean(generation))
+        ysamples = ss.expit(obstruction + np.mean(conversion))
+        xlabel = "Mean time to conceding a shot when drawing vs avg opposition"
+        ylabel = "Expected conversion of a shot conceded when drawing vs avg opposition"
 
-    gen_means = np.apply_along_axis(np.mean, 0, generation)
-    pre_means = np.apply_along_axis(np.mean, 0, prevention)
-    gen_bounds = np.apply_along_axis(hdi, 0, generation)
-    pre_bounds = np.apply_along_axis(hdi, 0, prevention)
+    xmeans = np.apply_along_axis(np.mean, 0, xsamples)
+    ymeans = np.apply_along_axis(np.mean, 0, ysamples)
+    xerr = np.apply_along_axis(hdi, 0, xsamples)
+    yerr = np.apply_along_axis(hdi, 0, ysamples)
 
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(8, 8), tight_layout=True)
     ax = plt.subplot(111)
-    ax.errorbar(gen_means, pre_means,
-                xerr=gen_bounds, yerr=pre_bounds,
-                elinewidth=0.25, fmt='.')
-    labels = [ax.text(gen_means[i], pre_means[i], labels[i], size=6, color='gray')
+    ax.errorbar(xmeans, ymeans, xerr=xerr, yerr=yerr, elinewidth=0.25, fmt='.')
+    labels = [ax.text(xmeans[i], ymeans[i], labels[i], size=6, color='gray')
               for i in range(len(labels))]
     adjust_text(labels, arrowprops={'arrowstyle': '-', 'color': 'gray'})
-    ax.set_xlabel("Expected time to shot taken when drawing vs avg opposition")
-    ax.set_ylabel("Expected time to shot conceded when drawing vs avg opposition")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     plt.show()
 
 
@@ -82,4 +95,4 @@ def wrangle(filepath):
 
 def run():
     stan_data, team_map = wrangle("data/shots.csv")
-    return fit("shotgen.stan", stan_data, chains=7, iter=4000), team_map
+    return fit("shotgen.stan", stan_data, chains=7, iter=2000), team_map

@@ -11,19 +11,17 @@ Currently the model is best executed and visualised via IPython, like so:
 ```python
 %run run.py
 samples, team_map = run()
-graph(samples, team_map)
+graph(samples, team_map, attack=True)
 ```
 which produces a scatter plot of team coefficients with 50% CIs:
 ![Team coefficients](doc/figures/team_scatter.png)
 
-Note that while the CIs are very wide, this is due
-to the fact that that the mean time to shot is the inverse of the shooting rate
-and thus the effect of extremely small values is magnified. The underlying team 
-coefficients are in fact significantly different from one another, as illustrated
+The CIs are very wide, but in fact the underlying team 
+coefficients are significantly different from one another, as illustrated
 by further running
 
 ```python
-samples.plot()
+samples.plot(pars=['generation', 'prevention', 'conversion', 'obstruction'])
 plt.show()
 ```
 which yields
