@@ -90,7 +90,7 @@ model{
         }
 
         // Add the current datapoint to the likelihood
-        if (wait[i] > 0.0){  // 0.0 suggests a rebound, unmodelled for now
+        if (wait[i] > 5.0/60.0){  // < 5s suggests a rebound, unmodelled for now
             if (own_goal[i] || penalty[i] || !shot[i]){
                 // No shot taken for a period of time
                 target += exponential_lccdf(wait[i] | exp(production_team));
