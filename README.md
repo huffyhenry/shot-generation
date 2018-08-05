@@ -2,8 +2,9 @@
 Rigorous Bayesian modelling of shooting in soccer.
 
 ### Model
-There is a dedicated wiki page with 
-[Model definition](https://github.com/huffyhenry/shot-generation/wiki).
+Formal model definition is 
+[pending](https://github.com/huffyhenry/shot-generation/issues/25), for now
+read the [shotgen.stan](shotgen.stan) file.
 
 ### Execution
 Currently the model is best executed and visualised via IPython, like so:
@@ -29,5 +30,5 @@ which yields
 ![Samples](doc/figures/fit.png)
 
 ### Status
-The model is unfit for (any) purpose until a number of improvements are made as per
-the [Issues](https://github.com/huffyhenry/shot-generation/issues?q=is%3Aissue+is%3Aopen+label%3Amodel-design). 
+The model yields a number of interesting insights, but is yet to be 
+[checked for overfitting](https://github.com/huffyhenry/shot-generation/issues/4). 
