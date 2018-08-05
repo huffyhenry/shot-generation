@@ -13,7 +13,7 @@ Currently the model is best executed and visualised via IPython, like so:
 samples, team_map = run()
 graph(samples, team_map, attack=True)
 ```
-which produces a scatter plot of team coefficients with 50% CIs:
+which produces a scatter plot of team attack profile with 50% CIs:
 ![Team coefficients](doc/figures/team_scatter.png)
 
 The CIs are very wide, but in fact the underlying team 
@@ -25,6 +25,7 @@ samples.plot(pars=['generation', 'prevention', 'conversion', 'obstruction'])
 plt.show()
 ```
 which yields
+
 ![Samples](doc/figures/fit.png)
 
 ### Status
