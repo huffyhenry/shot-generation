@@ -32,6 +32,9 @@ parameters{
     // Home advantage modifiers of shooting rate and shot quality
     real hfa_quantity;
     real hfa_quality;
+
+    real<lower=0.0> quantity_k;
+    real quality_k;
 }
 
 transformed parameters{
@@ -65,12 +68,14 @@ model{
     losing_quality ~ normal(0, 1);
     hfa_quantity ~ normal(0, 1);
     hfa_quality ~ normal(0, 1);
+    quantity_k ~ normal(1, 0.25);
+    quality_k ~ normal(0, 1);
 
     // Likelihood
     for (i in 1:n_shots){
         production_team = generation[team[i]] + prevention[oppo[i]];
         production_oppo = generation[oppo[i]] + prevention[team[i]];
-        shot_quality = conversion[team[i]] + obstruction[oppo[i]];
+        shot_quality = conversion[team[i]] + obstruction[oppo[i]] + quality_k*wait[i];
         if (home[i]){
             production_team += hfa_quantity;
             shot_quality += hfa_quality;
@@ -93,14 +98,14 @@ model{
         if (wait[i] > 5.0/60.0){  // < 5s suggests a rebound, unmodelled for now
             if (own_goal[i] || penalty[i] || !shot[i]){
                 // No shot taken for a period of time
-                target += exponential_lccdf(wait[i] | exp(production_team));
-                target += exponential_lccdf(wait[i] | exp(production_oppo));
+                target += weibull_lccdf(wait[i] | quantity_k, exp(production_team));
+                target += weibull_lccdf(wait[i] | quantity_k, exp(production_oppo));
             }
             else {
                 // One team takes a shot, meaning that the other does not
-                target += exponential_lpdf(wait[i] | exp(production_team));
-                target += exponential_lccdf(wait[i] | exp(production_oppo));
-                target += bernoulli_lpmf(goal[i] | inv_logit(shot_quality));
+                target += weibull_lpdf(wait[i] | quantity_k, exp(production_team));
+                target += weibull_lccdf(wait[i] | quantity_k, exp(production_oppo));
+                target += bernoulli_logit_lpmf(goal[i] | shot_quality);
             }
         }
     }

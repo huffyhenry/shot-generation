@@ -30,6 +30,10 @@ def fit(model_file, data, force_compile=False, **kwargs):
 
 def graph(samples, team_map, attack=True):
     """ Quick visualisation of the team coefficient samples. """
+    def weibull_means(shape, scales):
+        """ Return the mean of the Weibull distro, vectorized over scale. """
+        return ss.gamma(1.0 + 1.0/shape)*scales
+
     plt.style.use('Solarize_Light2')
 
     # Extract the samples
@@ -38,17 +42,21 @@ def graph(samples, team_map, attack=True):
     conversion = samples['conversion']
     obstruction = samples['obstruction']
 
+    # Get the time dependence parameters
+    quantity_k = np.mean(samples['quantity_k'])
+    quality_k = np.mean(samples['quality_k'])
+
     labels = list(team_map.keys())  # Magically in the correct order
 
     # Select quantities to plot and make them interpretable
     if attack:
-        xsamples = 1.0 / np.exp(generation + np.mean(prevention))
-        ysamples = ss.expit(conversion + np.mean(obstruction))
+        xsamples = weibull_means(quantity_k, np.exp(generation + np.mean(prevention)))
+        ysamples = ss.expit(conversion + np.mean(obstruction) + quality_k*xsamples)
         xlabel = "Mean time to shot when drawing vs avg opposition"
         ylabel = "Expected conversion of a shot taken when drawing vs avg opposition"
     else:
-        xsamples = 1.0 / np.exp(prevention + np.mean(generation))
-        ysamples = ss.expit(obstruction + np.mean(conversion))
+        xsamples = weibull_means(quantity_k, np.exp(prevention + np.mean(generation)))
+        ysamples = ss.expit(obstruction + np.mean(conversion) + quality_k*xsamples)
         xlabel = "Mean time to conceding a shot when drawing vs avg opposition"
         ylabel = "Expected conversion of a shot conceded when drawing vs avg opposition"
 
