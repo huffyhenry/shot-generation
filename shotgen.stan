@@ -15,6 +15,20 @@ data{
     int state[n_shots];  // Goal difference at the time of the shot
 }
 
+transformed data{
+  int<lower=0, upper=1> rebound[n_shots];
+
+  // Define rebound as any shot coming up to 5 seconds after another.
+  for (i in 1:n_shots){
+    if (wait[i] < 5.0/60.0){
+      rebound[i] = 1;
+    }
+    else{
+      rebound[i] = 0;
+    }
+  }
+}
+
 parameters{
     // Team-specific coefficients of shot generation/prevention in log space.
     // Having 2*n_teams - 1 free parameters ensures identifiability.
@@ -33,8 +47,12 @@ parameters{
     real hfa_quantity;
     real hfa_quality;
 
+    // Parameters describing dependence of shot rate & quality on waiting time.
     real<lower=0.0> quantity_k;
     real quality_k;
+
+    // Proportion of shots followed by a rebound
+    real<lower=0.0, upper=1.0> rebound_rate;
 }
 
 transformed parameters{
@@ -70,6 +88,7 @@ model{
     hfa_quality ~ normal(0, 1);
     quantity_k ~ normal(1, 0.25);
     quality_k ~ normal(0, 1);
+    rebound_rate ~ normal(0, 0.25);
 
     // Likelihood
     for (i in 1:n_shots){
@@ -95,18 +114,21 @@ model{
         }
 
         // Add the current datapoint to the likelihood
-        if (wait[i] > 5.0/60.0){  // < 5s suggests a rebound, unmodelled for now
-            if (own_goal[i] || penalty[i] || !shot[i]){
-                // No shot taken for a period of time
-                target += weibull_lccdf(wait[i] | quantity_k, exp(production_team));
-                target += weibull_lccdf(wait[i] | quantity_k, exp(production_oppo));
-            }
-            else {
-                // One team takes a shot, meaning that the other does not
-                target += weibull_lpdf(wait[i] | quantity_k, exp(production_team));
-                target += weibull_lccdf(wait[i] | quantity_k, exp(production_oppo));
-                target += bernoulli_logit_lpmf(goal[i] | shot_quality);
-            }
+        if (own_goal[i] || penalty[i] || !shot[i]){
+            // No shot taken for a period of time
+            target += weibull_lccdf(wait[i] | quantity_k, exp(production_team));
+            target += weibull_lccdf(wait[i] | quantity_k, exp(production_oppo));
+        }
+        else if (rebound[i]){
+            // The shot is a rebound. Update rebound rate only.
+            target += bernoulli_lpmf(1 | rebound_rate);
+        }
+        else{
+            // One team takes a (regular) shot, the other does not.
+            target += bernoulli_lpmf(0 | rebound_rate);
+            target += weibull_lpdf(wait[i] | quantity_k, exp(production_team));
+            target += weibull_lccdf(wait[i] | quantity_k, exp(production_oppo));
+            target += bernoulli_logit_lpmf(goal[i] | shot_quality);
         }
     }
 }
