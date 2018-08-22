@@ -91,8 +91,7 @@ def wrangle(filepath):
             team=lambda df: list(map(team_map.__getitem__, df.team)),
             oppo=lambda df: list(map(team_map.__getitem__, df.oppo))
         )
-        [['team', 'oppo', 'wait', 'time', 'home', 'neutral', 'shot', 'goal',
-          'own_goal', 'penalty', 'state']]
+        [['team', 'oppo', 'wait', 'time', 'home', 'neutral', 'goal', 'state']]
         .to_dict(orient='list')
     )
     stan_data['n_teams'] = len(team_map)
