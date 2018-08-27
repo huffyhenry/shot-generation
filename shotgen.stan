@@ -11,9 +11,24 @@ data{
     int state[n_shots];  // Goal difference at the time of the shot
 }
 
+transformed data{
+  // Game state recoded to facilitate vectorization
+  vector[n_shots] winning;
+  vector[n_shots] losing;
+
+  for (i in 1:n_shots){
+    winning[i] = 0;
+    losing[i] = 0;
+    if (state[i] > 0)
+      winning[i] = 1;
+    else if (state[i] < 0)
+      losing[i] = 1;
+  }
+}
+
 parameters{
     // Team-specific parameters driving shot quality and quantity in log space.
-    // The defense vector is constrained a la Dixon-Coles for identifiability.
+    // The defense vectors are constrained a la Dixon-Coles for identifiability.
     real generation[n_teams];
     real prevention_raw[n_teams-1];
     real conversion[n_teams];
@@ -35,27 +50,45 @@ parameters{
 }
 
 transformed parameters{
+    // Constrained defence ratings
     real prevention[n_teams];
     real obstruction[n_teams];
 
-    // Introduce sum-to-zero constraints
-    for (i in 1:(n_teams-1)){
-        prevention[i] = prevention_raw[i];
-        obstruction[i] = obstruction_raw[i];
+    // Shooting rates and shot quality predictors for all datapoints
+    vector[n_shots] production_team;
+    vector[n_shots] production_oppo;
+    vector[n_shots] shot_quality;
 
-    }
+    // Introduce sum-to-zero constraints on team defence coefficients
+    prevention[1:(n_teams-1)] = prevention_raw;
     prevention[n_teams] = -sum(prevention_raw);
+    obstruction[1:(n_teams-1)] = obstruction_raw;
     obstruction[n_teams] = -sum(obstruction_raw);
+
+    // Compute shooting rates and the shot quality predictor
+    production_team = exp(
+      to_vector(generation[team])
+      + to_vector(prevention[oppo])
+      + to_vector(home)*hfa_quantity
+      + winning*winning_quantity
+      + losing*losing_quantity
+    );
+    production_oppo = exp(
+      to_vector(generation[oppo])
+      + to_vector(prevention[team])
+      + (1 - to_vector(home))*hfa_quantity
+      + losing*winning_quantity
+      + winning*losing_quantity
+    );
+    shot_quality = to_vector(conversion[team])
+                   + to_vector(obstruction[oppo])
+                   + to_vector(home)*hfa_quality
+                   + to_vector(wait)*quality_k
+                   + winning*winning_quality
+                   + losing*losing_quality;
 }
 
 model{
-    // Rates of shot production for the two teams, in log space
-    real production_team[n_shots];
-    real production_oppo[n_shots];
-
-    // Linear predictor for conversion
-    real shot_quality[n_shots];
-
     // Priors
     generation ~ normal(0, 1);
     prevention ~ normal(0, 1);
@@ -70,37 +103,8 @@ model{
     quantity_k ~ normal(1, 0.1);
     quality_k ~ normal(0, 1);
 
-    // Compute parameter combinations for each shot
-    for (i in 1:n_shots){
-        // Compute base rates
-        production_team[i] = generation[team[i]] + prevention[oppo[i]];
-        production_oppo[i] = generation[oppo[i]] + prevention[team[i]];
-        shot_quality[i] = conversion[team[i]] + obstruction[oppo[i]] + quality_k*wait[i];
-
-        // Apply home field advantage modifiers
-        if (home[i]){
-            production_team[i] += hfa_quantity;
-            shot_quality[i] += hfa_quality;
-        }
-        else{
-            production_oppo[i] += hfa_quantity;
-        }
-
-        // Apply game state modifiers
-        if (state[i] > 0){
-          production_team[i] += winning_quantity;
-          production_oppo[i] += losing_quantity;
-          shot_quality[i] += winning_quality;
-        }
-        else if (state[i] < 0){
-          production_team[i] += losing_quantity;
-          production_oppo[i] += winning_quantity;
-          shot_quality[i] += losing_quality;
-        }
-    }
-
     // Likelihood
-    wait ~ weibull_lpdf(quantity_k, 1.0./to_vector(exp(production_team)));
+    wait ~ weibull(quantity_k, 1.0./production_team);
     goal ~ bernoulli_logit(shot_quality);
-    target += weibull_lccdf(wait | quantity_k, 1.0./to_vector(exp(production_oppo)));
+    target += weibull_lccdf(wait | quantity_k, 1.0./production_oppo);  // Shot not taken
 }
