@@ -100,7 +100,7 @@ model{
     }
 
     // Likelihood
-    target += weibull_lpdf(wait | quantity_k, exp(production_team));
-    target += weibull_lccdf(wait | quantity_k, exp(production_oppo));
-    target += bernoulli_logit_lpmf(goal | shot_quality);
+    wait ~ weibull_lpdf(quantity_k, 1.0./to_vector(exp(production_team)));
+    goal ~ bernoulli_logit(shot_quality);
+    target += weibull_lccdf(wait | quantity_k, 1.0./to_vector(exp(production_oppo)));
 }

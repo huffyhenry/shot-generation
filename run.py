@@ -50,12 +50,13 @@ def graph(samples, team_map, attack=True):
 
     # Select quantities to plot and make them interpretable
     if attack:
-        xsamples = weibull_means(quantity_k, np.exp(generation + np.mean(prevention)))
-        ysamples = ss.expit(conversion + np.mean(obstruction) + quality_k*xsamples)
+        # Nb. mean(prevention) = mean(obstruction) = 0
+        xsamples = weibull_means(quantity_k, 1.0/np.exp(generation))
+        ysamples = ss.expit(conversion + quality_k*xsamples)
         xlabel = "Mean time to shot when drawing vs avg opposition"
         ylabel = "Expected conversion of a shot taken when drawing vs avg opposition"
     else:
-        xsamples = weibull_means(quantity_k, np.exp(prevention + np.mean(generation)))
+        xsamples = weibull_means(quantity_k, 1.0/np.exp(prevention + np.mean(generation)))
         ysamples = ss.expit(obstruction + np.mean(conversion) + quality_k*xsamples)
         xlabel = "Mean time to conceding a shot when drawing vs avg opposition"
         ylabel = "Expected conversion of a shot conceded when drawing vs avg opposition"
