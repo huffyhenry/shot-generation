@@ -108,3 +108,13 @@ model{
     goal ~ bernoulli_logit(shot_quality);
     target += weibull_lccdf(wait | quantity_k, 1.0./production_oppo);  // Shot not taken
 }
+
+generated quantities{
+  real logLik[n_shots];  // Per-datapoint log likelihood (w/o shot quality part)
+  int n_params;  // The nominal number of model parameters
+
+  for (i in 1:n_shots)
+      logLik[i] = weibull_lpdf(wait[i] | quantity_k, 1.0./production_team[i])
+                + weibull_lccdf(wait[i] | quantity_k, 1.0./production_oppo[i]);
+  n_params = 4*n_teams - 2 + 4 + 2 + 2;
+}

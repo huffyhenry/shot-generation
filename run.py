@@ -1,20 +1,8 @@
 import os
 import pickle
 
-from adjustText import adjust_text
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.special as ss
 import pandas as pd
 import pystan
-
-
-def hdi(vector, width=0.5):
-    x = sorted(vector)
-    size = len(vector)
-    left = int((1.0 - width)/2 * size)
-    right = int((width + (1.0 - width)/2) * size)
-    return x[left], x[right]
 
 
 def fit(model_file, data, force_compile=False, **kwargs):
@@ -26,55 +14,6 @@ def fit(model_file, data, force_compile=False, **kwargs):
         pickle.dump(model, open("cache/%s.pickle" % model_file, 'wb'))
 
     return model.sampling(data, **kwargs)
-
-
-def graph(samples, team_map, attack=True):
-    """ Quick visualisation of the team coefficient samples. """
-    def weibull_means(shape, scales):
-        """ Return the mean of the Weibull distro, vectorized over scale. """
-        return ss.gamma(1.0 + 1.0/shape)*scales
-
-    plt.style.use('Solarize_Light2')
-
-    # Extract the samples
-    generation = samples['generation']
-    prevention = samples['prevention']
-    conversion = samples['conversion']
-    obstruction = samples['obstruction']
-
-    # Get the time dependence parameters
-    quantity_k = np.mean(samples['quantity_k'])
-    quality_k = np.mean(samples['quality_k'])
-
-    labels = list(team_map.keys())  # Magically in the correct order
-
-    # Select quantities to plot and make them interpretable
-    if attack:
-        # Nb. mean(prevention) = mean(obstruction) = 0
-        xsamples = weibull_means(quantity_k, 1.0/np.exp(generation))
-        ysamples = ss.expit(conversion + quality_k*xsamples)
-        xlabel = "Mean time to shot when drawing vs avg opposition"
-        ylabel = "Expected conversion of a shot taken when drawing vs avg opposition"
-    else:
-        xsamples = weibull_means(quantity_k, 1.0/np.exp(prevention + np.mean(generation)))
-        ysamples = ss.expit(obstruction + np.mean(conversion) + quality_k*xsamples)
-        xlabel = "Mean time to conceding a shot when drawing vs avg opposition"
-        ylabel = "Expected conversion of a shot conceded when drawing vs avg opposition"
-
-    xmeans = np.apply_along_axis(np.mean, 0, xsamples)
-    ymeans = np.apply_along_axis(np.mean, 0, ysamples)
-    xerr = np.apply_along_axis(hdi, 0, xsamples)
-    yerr = np.apply_along_axis(hdi, 0, ysamples)
-
-    fig = plt.figure(figsize=(8, 8), tight_layout=True)
-    ax = plt.subplot(111)
-    ax.errorbar(xmeans, ymeans, xerr=xerr, yerr=yerr, elinewidth=0.25, fmt='.')
-    labels = [ax.text(xmeans[i], ymeans[i], labels[i], size=6, color='gray')
-              for i in range(len(labels))]
-    adjust_text(labels, arrowprops={'arrowstyle': '-', 'color': 'gray'})
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    plt.show()
 
 
 def wrangle(filepath):
@@ -103,4 +42,4 @@ def wrangle(filepath):
 
 def run():
     stan_data, team_map = wrangle("data/shots.csv")
-    return fit("shotgen.stan", stan_data, chains=7, iter=2000), team_map
+    return fit("shotgen.stan", stan_data, chains=6, iter=500), team_map
