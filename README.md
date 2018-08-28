@@ -31,6 +31,13 @@ which yields
 
 ![Samples](doc/figures/fit.png)
 
-### Status
-The model yields a number of interesting insights, but is yet to be 
-[checked for overfitting](https://github.com/huffyhenry/shot-generation/issues/4). 
+### Information criteria tracker
+
+To keep an eye on model quality, I record information criteria scores 
+of the various variants here. All models are fitted on complete EPL 2017/18
+data, using 6 chains x 2000 iterations x 50% warmup = 6000 posterior samples.
+For the time being, only the shot generation part of the model is evaluated. 
+
+| Commit | Model | AIC (gen only) | WAIC (gen only)|
+|--------|-------|---------------:|---------------:|
+|[`ae5298a5`](https://github.com/huffyhenry/shot-generation/commit/ae5298a579228c24ac637bd5236db5618de0e5e8)|Weibull base|56298.6|56172.7|
