@@ -12,10 +12,12 @@ Currently the model is best executed and visualised via IPython, like so:
 ```python
 %run run.py
 samples, team_map = run()
-graph(samples, team_map, attack=True)
+
+%run analysis.py
+team_scatter(samples, team_map, attack=True)
 ```
-which produces a scatter plot of team attack profile with 50% CIs:
-![Team coefficients](doc/figures/team_scatter.png)
+which produces a scatter plot of team attack profiles with 50% CIs:
+![Team characteristics](doc/figures/team_scatter.png)
 
 The CIs are very wide, but in fact the underlying team 
 coefficients are significantly different from one another, as illustrated
