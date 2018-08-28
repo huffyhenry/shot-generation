@@ -1,6 +1,18 @@
-SELECT * FROM (
+SELECT
+  date::DATE AS date,
+  team1,
+  team2,
+  time,
+  wait,
+  team,
+  oppo,
+  home::INT AS home,
+  goal::INT AS goal,
+  CASE WHEN home THEN goals1 ELSE goals2 END AS scored,
+  CASE WHEN home THEN goals2 ELSE goals1 END AS conceded
+FROM (
   SELECT
-    g.kickoff::DATE AS date,
+    g.kickoff AS date,
     t1.name AS team1,
     t2.name AS team2,
     e.period_id AS half,
@@ -11,9 +23,12 @@ SELECT * FROM (
     ) AS wait,
     t.name AS team,
     CASE WHEN t.id = t1.id THEN t2.name ELSE t1.name END AS oppo,
-    (e.team_id = g.team1_id)::INT AS home,
-    (e.type_id = 16)::INT AS goal,
-    game_state AS state
+    (e.team_id = g.team1_id) AS home,
+    (e.type_id = 16) AS goal,
+    count(*) FILTER (WHERE e.type_id = 16 AND q_own.id IS NULL AND e.team_id = t1.id) OVER game +
+    count(*) FILTER (WHERE e.type_id = 16 AND q_own.id IS NOT NULL AND e.team_id = t2.id) OVER game AS goals1,
+    count(*) FILTER (WHERE e.type_id = 16 AND q_own.id IS NULL AND e.team_id = t2.id) OVER game +
+    count(*) FILTER (WHERE e.type_id = 16 AND q_own.id IS NOT NULL AND e.team_id = t1.id) OVER game AS goals2
   FROM
     base_event e
     JOIN base_team t ON e.team_id = t.id AND e.type_id IN (13, 14, 15, 16, 30)
@@ -26,13 +41,15 @@ SELECT * FROM (
   WHERE
     e.period_id IN (1,2)  -- The End event (type_id=30) also exists for period_id=14
     AND (e.type_id != 30 OR e.team_id = g.team1_id)  -- Pick one End event of the pair
-    AND q_own.id IS NULL  -- no own goals
-    AND q_pen.id IS NULL  -- no penalties
+    AND q_own.id IS NULL  -- Drop own goals
+    AND q_pen.id IS NULL  -- Drop penalties
     AND c.region = 'England'
     AND c.competition = 'Premier League'
     AND g.kickoff BETWEEN '2017-07-01' AND '2018-07-01'
-  WINDOW half AS (PARTITION BY e.game_id, e.period_id ORDER BY e.seq_id)
+  WINDOW
+      half AS (PARTITION BY e.game_id, e.period_id ORDER BY e.seq_id),
+      game AS (PARTITION BY e.game_id ORDER BY e.seq_id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
   ORDER BY
     date, g.id, time
-) subtable WHERE wait > 5.0/60.0 -- no rebounds (defined as shots within 5s of another)
+) subtable WHERE wait > 5.0/60.0 -- Drop rebounds (defined as shots within 5s of another)
 

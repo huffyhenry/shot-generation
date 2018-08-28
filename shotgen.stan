@@ -8,7 +8,10 @@ data{
     int<lower=0, upper=1> goal[n_shots];
     real<lower=0.0> wait[n_shots];  // Time since last shot or start of the half
     real<lower=0.0> time[n_shots];  // Absolute time of the shot
-    int state[n_shots];  // Goal difference at the time of the shot
+
+    // Exact score at the time of shot
+    int<lower=0> scored[n_shots];
+    int<lower=0> conceded[n_shots];
 }
 
 transformed data{
@@ -19,9 +22,9 @@ transformed data{
   for (i in 1:n_shots){
     winning[i] = 0;
     losing[i] = 0;
-    if (state[i] > 0)
+    if (scored[i] > conceded[i])
       winning[i] = 1;
-    else if (state[i] < 0)
+    else if (scored[i] < conceded[i])
       losing[i] = 1;
   }
 }
