@@ -56,13 +56,13 @@ def team_scatter(samples, team_map, attack=True):
         # Nb. mean(prevention) = mean(obstruction) = 0
         xsamples = weibull_means(quantity_k, 1.0/np.exp(generation))
         ysamples = ss.expit(conversion + quality_k*xsamples)
-        xlabel = "Mean time to shot when drawing vs avg opposition"
-        ylabel = "Expected conversion of a shot taken when drawing vs avg opposition"
+        xlabel = "Expected time to next shot taken at 0:0 vs avg opposition"
+        ylabel = "Expected conversion of a shot taken at 0:0 against avg opposition"
     else:
         xsamples = weibull_means(quantity_k, 1.0/np.exp(prevention + np.mean(generation)))
         ysamples = ss.expit(obstruction + np.mean(conversion) + quality_k*xsamples)
-        xlabel = "Mean time to conceding a shot when drawing vs avg opposition"
-        ylabel = "Expected conversion of a shot conceded when drawing vs avg opposition"
+        xlabel = "Expected time to next shot conceded at 0:0 vs avg opposition"
+        ylabel = "Expected conversion of a shot conceded at 0:0 to avg opposition"
 
     xmeans = np.apply_along_axis(np.mean, 0, xsamples)
     ymeans = np.apply_along_axis(np.mean, 0, ysamples)
