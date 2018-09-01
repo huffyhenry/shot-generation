@@ -42,3 +42,4 @@ For the time being, only the shot generation part of the model is evaluated.
 |--------|:------:|---------------:|---------------:|
 |[`variant/memoryless`](https://github.com/huffyhenry/shot-generation/tree/variant/memoryless)|[`ac083697`](https://github.com/huffyhenry/shot-generation/commit/ac083697c9904d19da49a807e2733a27bd5d182f)|56533.0|56487.4|
 |[`variant/weibull`](https://github.com/huffyhenry/shot-generation/tree/variant/weibull)|[`d0d48093`](https://github.com/huffyhenry/shot-generation/commit/d0d48093a2d58cb14857c03dd176133e3435b332)|**56212.6**|**56172.8**|
+|[`variant/weibull+scores`](https://github.com/huffyhenry/shot-generation/tree/variant/weibull%2Bscores)|[`71384c92`](https://github.com/huffyhenry/shot-generation/commit/71384c92b0711c226bfb414604891c24b2382e0a)|56226.7|56178.1|
