@@ -38,7 +38,7 @@ of the various variants here. All models are fitted on complete EPL 2017/18
 data, using 6 chains x 2000 iterations x 50% warmup = 6000 posterior samples.
 For the time being, only the shot generation part of the model is evaluated. 
 
-| Commit | Model | AIC (gen only) | WAIC (gen only)|
-|--------|-------|---------------:|---------------:|
-|[`2ba71d73`](https://github.com/huffyhenry/shot-generation/commit/2ba71d73081e558819acc1ca92ba7a7cefb9514c)|Exponential|56617.0|56487.5|
-|[`ae5298a5`](https://github.com/huffyhenry/shot-generation/commit/ae5298a579228c24ac637bd5236db5618de0e5e8)|Weibull base|**56298.6**|**56172.7**|
+| Model | Commit | AIC (gen) | WAIC (gen)|
+|--------|:------:|---------------:|---------------:|
+|[`variant/memoryless`](https://github.com/huffyhenry/shot-generation/tree/variant/memoryless)|[`ac083697`](https://github.com/huffyhenry/shot-generation/commit/ac083697c9904d19da49a807e2733a27bd5d182f)|56533.0|56487.4|
+|[`variant/weibull`](https://github.com/huffyhenry/shot-generation/tree/variant/weibull)|[`d0d48093`](https://github.com/huffyhenry/shot-generation/commit/d0d48093a2d58cb14857c03dd176133e3435b332)|**56212.6**|**56172.8**|
