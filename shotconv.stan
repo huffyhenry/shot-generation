@@ -16,9 +16,9 @@ data{
 
 parameters{
     // Team-specific parameters driving shot quantity in log space.
-    // The prevention vector is constrained a la Dixon-Coles for identifiability.
-    real generation[n_teams];
-    real prevention_raw[n_teams-1];
+    // The obstruction vector is constrained a la Dixon-Coles for identifiability.
+    real conversion[n_teams];
+    real obstruction_raw[n_teams-1];
 
     // Score-dependent modifiers of shooting rate in log space, relative to 0:0.
     // 8 scores from 0:0 to 2:2 (except 0:0) + 3 high score classes.
@@ -26,29 +26,21 @@ parameters{
 
     // Home advantage
     real hfa;
-
-    // The Weibull shape parameter (modulus), away from 0.0 to help the sampler.
-    real<lower=0.1> k;
-
-    // Effect of time elapsed in the game
-    real t;
 }
 
 transformed parameters{
-    real prevention[n_teams];
+    real obstruction[n_teams];
 
     matrix[3, 3] score;
     real winning_other;
     real drawing_other;
     real losing_other;
 
-    vector[n_shots] production_team;
-    vector[n_shots] production_oppo;
-
+    vector[n_shots] shot_quality;
 
     // Introduce sum-to-zero constraints on team defence coefficients
-    prevention[1:(n_teams-1)] = prevention_raw;
-    prevention[n_teams] = -sum(prevention_raw);
+    obstruction[1:(n_teams-1)] = obstruction_raw;
+    obstruction[n_teams] = -sum(obstruction_raw);
 
     // Rearrange the score modifiers in a matrix,
     // so that score[x, y] is the modifier for the score x-1:y-1.
@@ -63,42 +55,35 @@ transformed parameters{
     drawing_other = score_raw[10];
     losing_other = score_raw[11];
 
-    // Compute shooting rates at datapoint level
+    // Compute shot quality vector
     for (i in 1:n_shots){
-      production_team[i] = generation[team[i]] + prevention[oppo[i]] + home[i]*hfa;
-      production_oppo[i] = generation[oppo[i]] + prevention[team[i]] + (1-home[i])*hfa;
+      shot_quality[i] = conversion[team[i]] + obstruction[oppo[i]] + home[i]*hfa;
 
       if ((scored[i] <= 2) && (conceded[i] <= 2)){
-        production_team[i] += score[scored[i]+1, conceded[i]+1];
-        production_oppo[i] += score[conceded[i]+1, scored[i]+1];
+        shot_quality[i] += score[scored[i]+1, conceded[i]+1];
       }
       else if (scored[i] > conceded[i]){
-        production_team[i] += winning_other;
-        production_oppo[i] += losing_other;
+        shot_quality[i] += winning_other;
 
       }
       else if (scored[i] < conceded[i]){
-        production_team[i] += losing_other;
-        production_oppo[i] += winning_other;
+        shot_quality[i] += losing_other;
       }
       else{
-        production_team[i] += drawing_other;
-        production_oppo[i] += drawing_other;
+        shot_quality[i] += drawing_other;
       }
     }
 }
 
 model{
     // Priors
-    generation ~ normal(0, 1);
-    prevention_raw ~ normal(0, 1);
+    conversion ~ normal(0, 1);
+    obstruction_raw ~ normal(0, 1);
     score_raw ~ normal(0, 1);
     hfa ~ normal(0, 1);
-    k ~ normal(1, 1);
 
     // Likelihood
-    wait ~ weibull(k, 1.0./exp(production_team));
-    target += weibull_lccdf(wait | k, 1.0./exp(production_oppo));  // Shot not taken
+    goal ~ bernoulli_logit(shot_quality);
 }
 
 generated quantities{
@@ -107,11 +92,9 @@ generated quantities{
   int n_params;
 
   for (i in 1:n_shots)
-      logLik[i] = weibull_lpdf(wait[i] | k, 1.0/exp(production_team[i]))
-                + weibull_lccdf(wait[i] | k, 1.0/exp(production_oppo[i]));
+      logLik[i] = bernoulli_logit_lpmf(goal[i] | shot_quality[i]);
 
-  n_params = 2*n_teams - 1   // generation and prevention skills
-           + 1               // Weibull shape
+  n_params = 2*n_teams - 1   // conversion and obstruction skills
            + 1               // HFA
            + 11;             // score classes
 }

@@ -40,6 +40,6 @@ def wrangle(filepath):
     return stan_data, team_map
 
 
-def run():
+def run(model_file):
     stan_data, team_map = wrangle("data/shots.csv")
-    return fit("shotgen.stan", stan_data, chains=6, iter=500), team_map
+    return fit(model_file, stan_data, chains=6, iter=500), team_map

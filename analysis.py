@@ -31,7 +31,7 @@ def hdi(vector, width=0.5):
     return x[left], x[right]
 
 
-def team_scatter(samples, team_map, attack=True):
+def gen_scatter(samples, team_map, cis=True):
     """ Quick visualisation of the team coefficient samples. """
     def weibull_means(shape, scales):
         """ Return the mean of the Weibull distro, vectorized over scale. """
@@ -40,41 +40,47 @@ def team_scatter(samples, team_map, attack=True):
     plt.style.use('Solarize_Light2')
 
     # Extract the samples
-    generation = samples['generation']
-    prevention = samples['prevention']
-    conversion = samples['conversion']
-    obstruction = samples['obstruction']
-
-    # Get the time dependence parameters
-    quantity_k = np.mean(samples['quantity_k'])
-    quality_k = np.mean(samples['quality_k'])
+    generation, prevention = samples['generation'], samples['prevention']
+    k = np.mean(samples['k'])
 
     labels = list(team_map.keys())  # Magically in the correct order
 
     # Select quantities to plot and make them interpretable
-    if attack:
-        # Nb. mean(prevention) = mean(obstruction) = 0
-        xsamples = weibull_means(quantity_k, 1.0/np.exp(generation))
-        ysamples = ss.expit(conversion + quality_k*xsamples)
-        xlabel = "Expected time to next shot taken at 0:0 vs avg opposition"
-        ylabel = "Expected conversion of a shot taken at 0:0 against avg opposition"
-    else:
-        xsamples = weibull_means(quantity_k, 1.0/np.exp(prevention + np.mean(generation)))
-        ysamples = ss.expit(obstruction + np.mean(conversion) + quality_k*xsamples)
-        xlabel = "Expected time to next shot conceded at 0:0 vs avg opposition"
-        ylabel = "Expected conversion of a shot conceded at 0:0 to avg opposition"
+    # Nb. mean(prevention) = 0
+    xsamples = weibull_means(k, 1.0/np.exp(generation))
+    ysamples = weibull_means(k, 1.0/np.exp(prevention + np.mean(generation)))
+    xlabel = "Expected time to next shot taken at 0:0 vs avg opposition"
+    ylabel = "Expected time to next shot conceded at 0:0 to avg opposition"
 
     xmeans = np.apply_along_axis(np.mean, 0, xsamples)
     ymeans = np.apply_along_axis(np.mean, 0, ysamples)
-    xerr = np.apply_along_axis(hdi, 0, xsamples)
-    yerr = np.apply_along_axis(hdi, 0, ysamples)
 
-    fig = plt.figure(figsize=(8, 8), tight_layout=True)
+    # Plot
+    plt.figure(figsize=(8, 8), tight_layout=True)
     ax = plt.subplot(111)
-    ax.errorbar(xmeans, ymeans, xerr=xerr, yerr=yerr, elinewidth=0.25, fmt='.')
+    if cis:
+        xerr = np.apply_along_axis(hdi, 0, xsamples)
+        yerr = np.apply_along_axis(hdi, 0, ysamples)
+        ax.errorbar(xmeans, ymeans, xerr=xerr, yerr=yerr, elinewidth=0.25, fmt='.')
+    else:
+        ax.scatter(xmeans, ymeans)
+
     labels = [ax.text(xmeans[i], ymeans[i], labels[i], size=6, color='gray')
               for i in range(len(labels))]
     adjust_text(labels, arrowprops={'arrowstyle': '-', 'color': 'gray'})
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.show()
+
+
+def score_matrix(samples, max_goals=2):
+    m = np.zeros((max_goals + 1, max_goals + 1))
+
+    for i in range(max_goals + 1):
+        for j in range(max_goals + 1):
+                m[i, j] = np.mean(samples['score'][:, i, j])
+
+    plt.figure()
+    ax = plt.subplot(111)
+    ax.imshow(m.T, origin='upper')
     plt.show()
