@@ -20,12 +20,16 @@ parameters{
     real conversion[n_teams];
     real obstruction_raw[n_teams-1];
 
-    // Score-dependent modifiers of shooting rate in log space, relative to 0:0.
+    // Score-dependent modifiers of conversion probability relative to 0:0.
     // 8 scores from 0:0 to 2:2 (except 0:0) + 3 high score classes.
     real score_raw[11];
 
     // Home advantage
     real hfa;
+
+    // Effects of absolute and waiting time
+    real t_raw;
+    real w_raw;
 }
 
 transformed parameters{
@@ -36,9 +40,16 @@ transformed parameters{
     real drawing_other;
     real losing_other;
 
+    real t;
+    real w;
+
     vector[n_shots] shot_quality;
 
-    // Introduce sum-to-zero constraints on team defence coefficients
+    // Rescale time dependences to help the sampler
+    t = t_raw / 1000;
+    w = w_raw / 1000;
+
+    // Introduce sum-to-zero constraints on defence coefficients
     obstruction[1:(n_teams-1)] = obstruction_raw;
     obstruction[n_teams] = -sum(obstruction_raw);
 
@@ -55,9 +66,10 @@ transformed parameters{
     drawing_other = score_raw[10];
     losing_other = score_raw[11];
 
-    // Compute shot quality vector
+    // Compute the shot quality vector
     for (i in 1:n_shots){
-      shot_quality[i] = conversion[team[i]] + obstruction[oppo[i]] + home[i]*hfa;
+      shot_quality[i] = conversion[team[i]] + obstruction[oppo[i]]
+                      + home[i]*hfa + t*time[i] + w*wait[i];
 
       if ((scored[i] <= 2) && (conceded[i] <= 2)){
         shot_quality[i] += score[scored[i]+1, conceded[i]+1];
@@ -77,24 +89,27 @@ transformed parameters{
 
 model{
     // Priors
-    conversion ~ normal(0, 1);
-    obstruction_raw ~ normal(0, 1);
+    conversion ~ normal(0, 10);
+    obstruction_raw ~ normal(0, 10);
     score_raw ~ normal(0, 1);
     hfa ~ normal(0, 1);
+    t_raw ~ normal(0, 1);
+    w_raw ~ normal(0, 1);
 
     // Likelihood
     goal ~ bernoulli_logit(shot_quality);
 }
 
 generated quantities{
-  // Per-datapoint log-likelihood and nominal number of parameters.
+  // Per-datapoint log-likelihood and the nominal number of parameters.
   real logLik[n_shots];
   int n_params;
 
   for (i in 1:n_shots)
-      logLik[i] = bernoulli_logit_lpmf(goal[i] | shot_quality[i]);
+    logLik[i] = bernoulli_logit_lpmf(goal[i] | shot_quality[i]);
 
   n_params = 2*n_teams - 1   // conversion and obstruction skills
            + 1               // HFA
+           + 2               // time dependencies
            + 11;             // score classes
 }

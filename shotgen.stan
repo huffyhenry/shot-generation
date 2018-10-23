@@ -5,7 +5,6 @@ data{
     int<lower=1, upper=n_teams> team[n_shots];
     int<lower=1, upper=n_teams> oppo[n_shots];
     int<lower=0, upper=1> home[n_shots];
-    int<lower=0, upper=1> goal[n_shots];
     real<lower=0.0> wait[n_shots];  // Time since last shot or start of the half
     real<lower=0.0> time[n_shots];  // Absolute time of the shot
 
@@ -16,7 +15,7 @@ data{
 
 parameters{
     // Team-specific parameters driving shot quantity in log space.
-    // The prevention vector is constrained a la Dixon-Coles for identifiability.
+    // Constrained a la Dixon-Coles for identifiability.
     real generation[n_teams];
     real prevention_raw[n_teams-1];
 
@@ -27,11 +26,11 @@ parameters{
     // Home advantage
     real hfa;
 
-    // The Weibull shape parameter (modulus), away from 0.0 to help the sampler.
-    real<lower=0.1> k;
+    // Effect of absolute time in the game
+    real t_raw;
 
-    // Effect of time elapsed in the game
-    real t;
+    // The Weibull shape parameter, kept away from 0 to help the sampler.
+    real<lower=0.1> k;
 }
 
 transformed parameters{
@@ -42,9 +41,13 @@ transformed parameters{
     real drawing_other;
     real losing_other;
 
+    real t;
+
     vector[n_shots] production_team;
     vector[n_shots] production_oppo;
 
+    // Scale the absolute time dependence to help the sampler
+    t = t_raw / 1000;
 
     // Introduce sum-to-zero constraints on team defence coefficients
     prevention[1:(n_teams-1)] = prevention_raw;
@@ -60,13 +63,19 @@ transformed parameters{
       }
     }
     winning_other = score_raw[9];
-    drawing_other = score_raw[10];
-    losing_other = score_raw[11];
+    losing_other = score_raw[10];
+    drawing_other = score_raw[11];
 
     // Compute shooting rates at datapoint level
     for (i in 1:n_shots){
-      production_team[i] = generation[team[i]] + prevention[oppo[i]] + home[i]*hfa;
-      production_oppo[i] = generation[oppo[i]] + prevention[team[i]] + (1-home[i])*hfa;
+      production_team[i] = generation[team[i]]
+                         + prevention[oppo[i]]
+                         + hfa*home[i]
+                         + t*(time[i] - wait[i]/2);
+      production_oppo[i] = generation[oppo[i]]
+                         + prevention[team[i]]
+                         + (1-home[i])*hfa
+                         + t*(time[i] - wait[i]/2);
 
       if ((scored[i] <= 2) && (conceded[i] <= 2)){
         production_team[i] += score[scored[i]+1, conceded[i]+1];
@@ -90,10 +99,11 @@ transformed parameters{
 
 model{
     // Priors
-    generation ~ normal(0, 1);
-    prevention_raw ~ normal(0, 1);
+    generation ~ normal(0, 10);
+    prevention_raw ~ normal(0, 10);
     score_raw ~ normal(0, 1);
     hfa ~ normal(0, 1);
+    t_raw ~ normal(0, 10);
     k ~ normal(1, 1);
 
     // Likelihood
@@ -112,6 +122,7 @@ generated quantities{
 
   n_params = 2*n_teams - 1   // generation and prevention skills
            + 1               // Weibull shape
+           + 2               // time dependence parameters
            + 1               // HFA
            + 11;             // score classes
 }
