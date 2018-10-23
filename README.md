@@ -3,7 +3,7 @@ Rigorous Bayesian modelling of shooting in soccer.
 
 ### Model
 The model is described briefly in a 
-[blogpost](https://kwiatkowski.io/shot-generation), for full definition
+[blogpost](https://kwiatkowski.io/rethinking-shots), for full definition
 consult the [shotgen.stan](shotgen.stan) and [shotconv.stan](shotconv.stan)
 files.
 
@@ -20,4 +20,4 @@ team_profiles(gen_samples, conv_samples, team_map)
 score_bars(gen_samples)
 score_bars(conv_samples)
 ```
-which produces figures like in the [blogpost](https://kwiatkowski.io/shot-generation).
+which produces figures like in the [blogpost](https://kwiatkowski.io/rethinking-shots).
