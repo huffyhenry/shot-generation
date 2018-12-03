@@ -61,8 +61,11 @@ def team_profiles(gen_samples, conv_samples, teammap):
     ys = np.apply_along_axis(np.mean, 0, ss.expit(conversion))
     ax = plt.subplot(121)
     ax.scatter(xs, ys)
+    ax.set_title("Attack")
     ax.set_xlabel("Expected minutes to next shot taken at 0:0 vs avg opposition")
     ax.set_ylabel("Expected conversion of a shot taken at 0:0 vs avg opposition")
+    ax.set_xlim(6.0, 18.0)
+    ax.set_ylim(0.03, 0.18)
     gen_labels = [ax.text(xs[i], ys[i], ls[i]) for i in range(len(ls))]
     adjust_text(gen_labels, arrowprops={'arrowstyle': '-', 'color': 'gray'})
 
@@ -73,8 +76,11 @@ def team_profiles(gen_samples, conv_samples, teammap):
 
     ax = plt.subplot(122)
     ax.scatter(xs, ys)
+    ax.set_title("Defence")
     ax.set_xlabel("Expected minutes to next shot conceded at 0:0 to avg opposition")
     ax.set_ylabel("Expected conversion of a shot taken at 0:0 by avg opposition")
+    ax.set_xlim(6.0, 18.0)
+    ax.set_ylim(0.03, 0.18)
     ax.yaxis.tick_right()
     ax.yaxis.set_label_position("right")
     conv_labels = [ax.text(xs[i], ys[i], ls[i]) for i in range(len(ls))]

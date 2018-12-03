@@ -41,5 +41,5 @@ def wrangle(filepath):
 
 
 def run(model_file):
-    stan_data, team_map = wrangle("data/shots.csv")
-    return fit(model_file, stan_data, chains=6, iter=500), team_map
+    stan_data, team_map = wrangle("data/shots2018.csv")
+    return fit(model_file, stan_data, chains=4, iter=500), team_map
