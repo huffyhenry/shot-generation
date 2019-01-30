@@ -1,5 +1,5 @@
 # shot-generation
-Rigorous Bayesian modelling of shooting in soccer.
+Bayesian modelling of shot generation and conversion in soccer.
 
 ### Model
 The model is described briefly in a 
@@ -20,4 +20,4 @@ team_profiles(gen_samples, conv_samples, team_map)
 score_bars(gen_samples)
 score_bars(conv_samples)
 ```
-which produces figures like in the [blogpost](https://kwiatkowski.io/rethinking-shots).
+which produces figures like in the blogpost.
